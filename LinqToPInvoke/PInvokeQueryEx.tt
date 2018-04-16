@@ -1,0 +1,82 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ output extension=".tt.cs" #>
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+
+namespace PInvoke.Linq
+{
+    public static partial class PInvokeQueryEx
+    {
+<#
+    try
+    {
+        var types = new []
+        {
+            "int",
+            "long",
+            "float",
+            "double",
+            "decimal",
+        };
+        var operators = new[]
+        {
+            new { Name = "Max", Operator = ">" },
+            new { Name = "Min", Operator = "<" },
+        };
+        foreach (var o in operators)
+        {
+            foreach (var t in types)
+            {
+#>
+        public static IPInvokeQueryEndpoint<<#= t #>> <#= o.Name #>(this IPInvokeObservable<<#= t #>> @this)
+            => @this.Aggregate(
+            default(<#= t #>?),
+            (accumulate, v) => (v <#= o.Operator #> accumulate) ? v : accumulate,
+            accumulate => accumulate ?? throw new InvalidOperationException());
+
+        public static IPInvokeQueryEndpoint<<#= t #>?> <#= o.Name #>(this IPInvokeObservable<<#= t #>?> @this)
+            => @this.Aggregate(
+            default(<#= t #>?),
+            (accumulate, v) => (v <#= o.Operator #> accumulate) ? v : accumulate);
+
+        public static IPInvokeQueryEndpoint<<#= t #>> <#= o.Name #><T>(this IPInvokeObservable<T> @this, Func<T, <#= t #>> func)
+            => @this.Aggregate(
+            default(<#= t #>?),
+            (accumulate, v) =>
+            {
+                var value = func(v);
+                return (value <#= o.Operator #> accumulate) ? value : accumulate;
+            },
+            accumulate => accumulate ?? throw new InvalidOperationException());
+
+        public static IPInvokeQueryEndpoint<<#= t #>?> <#= o.Name #><T>(this IPInvokeObservable<T> @this, Func<T, <#= t #>?> func)
+            => @this.Aggregate(
+            default(<#= t #>?),
+            (accumulate, v) =>
+            {
+                var value = func(v);
+                return (value <#= o.Operator #> accumulate) ? value : accumulate;
+            });
+
+<#
+            }
+        }
+    }
+    catch (Exception e)
+    {
+#>
+#error <#= e.Message #>
+/*
+<#= e #>
+*/
+<#
+    }
+#>
+    }
+}
